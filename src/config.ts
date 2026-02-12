@@ -2,6 +2,13 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parse } from "smol-toml";
 
+export interface AuthConfig {
+  password: boolean;
+  magic_link: boolean;
+  email_verification: boolean;
+  password_reset: boolean;
+}
+
 export interface AizuConfig {
   project: {
     name: string;
@@ -15,6 +22,7 @@ export interface AizuConfig {
     output: string;
     ts_output?: string;
   };
+  auth?: AuthConfig;
 }
 
 interface RawConfig {
@@ -29,6 +37,12 @@ interface RawConfig {
     path?: string;
     output?: string;
     ts_output?: string;
+  };
+  auth?: {
+    password?: boolean;
+    magic_link?: boolean;
+    email_verification?: boolean;
+    password_reset?: boolean;
   };
 }
 
@@ -73,6 +87,16 @@ export async function loadConfig(cwd: string): Promise<AizuConfig> {
       ts_output: parsed.schemas.ts_output
         ? resolve(cwd, parsed.schemas.ts_output)
         : undefined,
+    };
+  }
+
+  if (parsed.auth) {
+    const password = parsed.auth.password ?? false;
+    config.auth = {
+      password,
+      magic_link: parsed.auth.magic_link ?? false,
+      email_verification: parsed.auth.email_verification ?? false,
+      password_reset: parsed.auth.password_reset ?? password,
     };
   }
 

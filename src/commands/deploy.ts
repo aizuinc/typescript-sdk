@@ -16,7 +16,8 @@ interface DeployOptions {
 
 export async function deploy(config: AizuConfig, opts: DeployOptions) {
   const start = performance.now();
-  const totalSteps = config.schemas ? 5 : 4;
+  let totalSteps = config.schemas ? 5 : 4;
+  totalSteps++; // Always sync settings
   let stepNum = 0;
 
   // Step: Codegen
@@ -47,6 +48,11 @@ export async function deploy(config: AizuConfig, opts: DeployOptions) {
   stepNum++;
   log.step(stepNum, totalSteps, "Waiting for module to be ready");
   await waitForReady(config, moduleId, opts);
+
+  // Step: Sync settings (always runs, even if empty, to clear removed settings)
+  stepNum++;
+  log.step(stepNum, totalSteps, "Syncing settings");
+  await syncSettings(config, opts);
 
   const elapsed = ((performance.now() - start) / 1000).toFixed(1);
   console.log();
@@ -228,6 +234,34 @@ async function waitForReady(
 
   s.fail("Timed out waiting for module to be ready");
   throw new Error("Module processing timed out after 60s");
+}
+
+async function syncSettings(config: AizuConfig, opts: DeployOptions) {
+  const headers = authHeaders(config, opts);
+
+  const body: Record<string, unknown> = {};
+  if (config.auth) {
+    body.auth = config.auth;
+  }
+
+  const res = await fetch(`${config.project.url}/api/v1/settings`, {
+    method: "PUT",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      `Failed to sync settings: ${res.status} ${await res.text()}`
+    );
+  }
+
+  const { synced } = (await res.json()) as { ok: boolean; synced: Record<string, unknown> };
+  if (synced.auth) {
+    log.success("Auth settings synced");
+  } else {
+    log.success("Settings synced (auth disabled)");
+  }
 }
 
 function authHeaders(

@@ -29,12 +29,14 @@ class PhoenixSocket {
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private url: string;
   private project?: string;
+  private tokenGetter?: AizuConfig["token"];
   private connected = false;
   private onConnect?: () => void;
 
-  constructor(url: string, project?: string) {
+  constructor(url: string, project?: string, token?: AizuConfig["token"]) {
     this.url = url;
     this.project = project;
+    this.tokenGetter = token;
   }
 
   connect(onConnect?: () => void): void {
@@ -42,10 +44,21 @@ class PhoenixSocket {
     this.doConnect();
   }
 
-  private doConnect(): void {
+  private async resolveToken(): Promise<string | null> {
+    if (!this.tokenGetter) return null;
+    if (typeof this.tokenGetter === "string") return this.tokenGetter;
+    const result = this.tokenGetter();
+    return result instanceof Promise ? await result : result;
+  }
+
+  private async doConnect(): Promise<void> {
     let wsUrl = this.url.replace(/^http/, "ws") + "/ws/websocket?vsn=2.0.0";
     if (this.project) {
       wsUrl += `&project=${encodeURIComponent(this.project)}`;
+    }
+    const token = await this.resolveToken();
+    if (token) {
+      wsUrl += `&token=${encodeURIComponent(token)}`;
     }
     this.ws = new WebSocket(wsUrl);
 
@@ -257,7 +270,7 @@ export class SubscriptionClient {
 
   constructor(config: AizuConfig) {
     this.debug = config.debug ?? false;
-    this.socket = new PhoenixSocket(config.url, config.project);
+    this.socket = new PhoenixSocket(config.url, config.project, config.token);
   }
 
   /**

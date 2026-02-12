@@ -12,9 +12,11 @@ import {
   NotFoundError,
   TimeoutError,
 } from "./types";
+import { AizuStorage } from "./storage";
 
 export class AizuClient {
   private config: Required<Omit<AizuConfig, "token" | "project">> & { token?: AizuConfig["token"]; project?: string };
+  private _storage: AizuStorage | null = null;
 
   constructor(config: AizuConfig) {
     this.config = {
@@ -172,6 +174,29 @@ export class AizuClient {
     }
 
     return response.json();
+  }
+
+  /**
+   * Get the storage client for file uploads/downloads
+   */
+  get storage(): AizuStorage {
+    if (!this._storage) {
+      this._storage = new AizuStorage(
+        () => this.config.url,
+        async () => {
+          const headers: Record<string, string> = {};
+          if (this.config.project) {
+            headers["X-Aizu-Project"] = this.config.project;
+          }
+          const token = await this.getToken();
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+          return headers;
+        }
+      );
+    }
+    return this._storage;
   }
 
   /**

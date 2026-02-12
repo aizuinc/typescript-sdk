@@ -69,6 +69,9 @@
 // Core client
 export { AizuClient } from "./client";
 
+// Storage
+export { AizuStorage } from "./storage";
+
 // Authentication
 export { AizuAuth } from "./auth";
 
@@ -89,6 +92,8 @@ export type {
   LoginOptions,
   MagicLinkOptions,
   ResetPasswordOptions,
+  StorageFile,
+  StorageListResult,
   Subscription,
   SubscriptionOptions,
 } from "./types";

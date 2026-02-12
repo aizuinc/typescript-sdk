@@ -233,7 +233,7 @@ function renderRustDashboard(schemas: ParsedSchema[]): string {
     structNames.set(s.name, s.collection.struct ?? s.name);
   }
 
-  o.push("// Auto-generated dashboard queries - do not edit");
+  o.push("// Auto-generated dashboard functions - do not edit");
   o.push("");
   o.push("use super::*;");
   o.push("");
@@ -244,6 +244,15 @@ function renderRustDashboard(schemas: ParsedSchema[]): string {
     const structName = structNames.get(schema.name)!;
     const lower = structName.toLowerCase();
     const respName = `${structName}Response`;
+    const fields = schema.collection.fields;
+
+    // Build parameter list and struct init for mutations
+    const params = fields
+      .map((f) => `${f.name}: ${fieldToRust(f, structNames)}`)
+      .join(", ");
+    const fieldNames = fields.map((f) => f.name).join(", ");
+
+    // --- Queries ---
 
     // List
     o.push("#[query]");
@@ -279,6 +288,43 @@ function renderRustDashboard(schemas: ParsedSchema[]): string {
     o.push(
       `    ctx.db.get(id).map(|doc| ${respName}::from_doc(id, doc))`,
     );
+    o.push("}");
+    o.push("");
+
+    // --- Mutations ---
+
+    // Insert
+    o.push("#[mutation]");
+    o.push(
+      `pub fn dashboard_insert_${lower}(ctx: &Ctx, ${params}) -> Result<${respName}, String> {`,
+    );
+    o.push(`    let doc = ${structName} { ${fieldNames} };`);
+    o.push(
+      `    let id = ctx.db.insert(&doc).map_err(|e| format!("{e:?}"))?;`,
+    );
+    o.push(`    Ok(${respName}::from_doc(id, doc))`);
+    o.push("}");
+    o.push("");
+
+    // Update
+    o.push("#[mutation]");
+    o.push(
+      `pub fn dashboard_update_${lower}(ctx: &Ctx, id: Id<${structName}>, ${params}) -> Result<${respName}, String> {`,
+    );
+    o.push(`    let doc = ${structName} { ${fieldNames} };`);
+    o.push(
+      `    ctx.db.update(id, &doc).map_err(|e| format!("{e:?}"))?;`,
+    );
+    o.push(`    Ok(${respName}::from_doc(id, doc))`);
+    o.push("}");
+    o.push("");
+
+    // Delete
+    o.push("#[mutation]");
+    o.push(
+      `pub fn dashboard_delete_${lower}(ctx: &Ctx, id: Id<${structName}>) -> Result<bool, String> {`,
+    );
+    o.push(`    ctx.db.delete(id).map_err(|e| format!("{e:?}"))`);
     o.push("}");
     o.push("");
   }

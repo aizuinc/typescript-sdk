@@ -48,6 +48,7 @@ import { QueryStore, type QueryState } from "./store";
 import { AizuClient } from "./client";
 import { AizuAuth } from "./auth";
 import type { AizuConfig, User, InvokeOptions } from "./types";
+import { AizuStorage } from "./storage";
 
 interface AizuContextValue {
   store: QueryStore;
@@ -382,17 +383,36 @@ export function useIsAuthenticated(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+/**
+ * Get the storage client for file uploads/downloads
+ *
+ * @example
+ * ```tsx
+ * const storage = useStorage();
+ * const handleUpload = async (file: File) => {
+ *   const { storageId, url } = await storage.upload(file);
+ * };
+ * ```
+ */
+export function useStorage(): AizuStorage {
+  const { store } = useAizu();
+  const client = store.getClient();
+  return useMemo(() => client.storage, [client]);
+}
+
 export type {
   AizuConfig,
   User,
   AuthTokens,
   InvokeOptions,
   Subscription,
+  StorageFile,
 } from "./types";
 
 export type { QueryState } from "./store";
 
 export { AizuClient } from "./client";
 export { AizuAuth } from "./auth";
+export { AizuStorage } from "./storage";
 export { SubscriptionClient } from "./subscriptions";
 export { QueryStore } from "./store";

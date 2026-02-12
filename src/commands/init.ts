@@ -149,6 +149,8 @@ path = "./aizu"
 path = "schemas/"
 output = "src/generated/"
 ts_output = "src/generated/"
+
+[packages]
 `;
 }
 

@@ -149,6 +149,24 @@ export interface ErrorMessage {
   message: string;
 }
 
+export interface StorageFile {
+  id: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  sha256?: string;
+  metadata?: Record<string, unknown>;
+  folder?: string;
+  createdAt: string;
+}
+
+export interface StorageListResult {
+  data: StorageFile[];
+  prefixes?: string[];
+  prefix?: string;
+  delimiter?: string;
+}
+
 export class AizuError extends Error {
   constructor(
     message: string,
